@@ -4,7 +4,8 @@
 #include "ofxCv.h"
 #include "ctmf.h"
 #include "ofxGui.h"
-#include "ofxKinectV2.h"
+//#include "ofxKinectV2.h"
+#include "ofxKinect.h"
 
 using namespace milton;
 
@@ -24,9 +25,13 @@ public:
 #ifdef USE_VIDEO
     ofVideoPlayer player;
 #else
-    shared_ptr<ofxKinectV2>  kinect;
+  /*  shared_ptr<ofxKinectV2>  kinect;
     ofTexture texDepth;
-    ofTexture texRGB;
+    ofTexture texRGB;*/
+    
+    ofTexture texDepth;
+    
+    ofxKinect kinect;
 #endif
     
     

@@ -19,17 +19,27 @@ void inputManager::setup(){
     player.load("videos/atwood.mov");
     player.play();
     player.setLoopState(OF_LOOP_NORMAL);
-#else
-    ofxKinectV2 tmp;
-    vector <ofxKinectV2::KinectDeviceInfo> deviceList = tmp.getDeviceList();
-    kinect = shared_ptr <ofxKinectV2> (new ofxKinectV2());
-    kinect->open(deviceList[0].serial);
-    panel.add(kinect->params);
-#endif
     
     graypixels = new unsigned char[512*424];
     medianFiltered = new unsigned char[512*424];
     medianFilteredResult.allocate(512, 424, OF_IMAGE_GRAYSCALE);
+#else
+   /* ofxKinectV2 tmp;
+    vector <ofxKinectV2::KinectDeviceInfo> deviceList = tmp.getDeviceList();
+    kinect = shared_ptr <ofxKinectV2> (new ofxKinectV2());
+    kinect->open(deviceList[0].serial);
+    panel.add(kinect->params);*/
+    
+    kinect.init();
+    kinect.open();
+    kinect.setRegistration(false);
+    
+    graypixels = new unsigned char[kinect.width*kinect.height];
+    medianFiltered = new unsigned char[kinect.width*kinect.height];
+    medianFilteredResult.allocate(kinect.width, kinect.height, OF_IMAGE_GRAYSCALE);
+#endif
+    
+    
     
     panel.loadFromFile("settings.xml");
     
@@ -76,7 +86,7 @@ void inputManager::update(){
         finder.findContours(medianFilteredResult);
     }
 #else
-    kinect->update();
+   /* kinect->update();
     if( kinect->isFrameNew() ){
         texDepth.loadData( kinect->getDepthPixels() );
         //texRGB.loadData( kinect->getRgbPixels() );
@@ -100,9 +110,29 @@ void inputManager::update(){
         
         finder.findContours(medianFilteredResult);
         
+    }*/
+    kinect.update();
+    if(kinect.isFrameNew()) {
+        texDepth.loadData( kinect.getDepthPixels() );
+        unsigned char * data  = kinect.getDepthPixels().getData();
+        
+        
+        // todo is this OK ???
+        for (int i = 0; i < kinect.width*kinect.height; i++){
+            graypixels[i] = data[i];
+        }
+        
+        
+        ctmf(graypixels, medianFiltered,
+             kinect.width, kinect.height, kinect.width, kinect.width,medianFilterAmount, 1);
+        
+        medianFilteredResult.setFromPixels(medianFiltered, kinect.width, kinect.height, OF_IMAGE_GRAYSCALE);
+        
+        finder.setSortBySize(true);
+        finder.setThreshold(threshold);
+        
+        finder.findContours(medianFilteredResult);
     }
-    
-    
 #endif
     
 }
@@ -123,7 +153,8 @@ void inputManager::draw(){
     }
     //finder.draw();
 #else
-    texDepth.draw(0,0);
+    //kinect.draw(0, 0);
+   texDepth.draw(0,0);
     medianFilteredResult.draw(512,0);
     if (finder.size() > 0){
         ofPushMatrix();
